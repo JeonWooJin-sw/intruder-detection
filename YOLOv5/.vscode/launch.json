@@ -1,0 +1,16 @@
+{
+    // 강의자료 ch08 p7 : VSCode에서 detect.py를 웹캠(--source 0)으로 실행
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: detect.py (웹캠)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/detect.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["--source", "0"],
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
