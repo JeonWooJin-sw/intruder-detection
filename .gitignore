@@ -1,0 +1,11 @@
+.DS_Store
+.vscode/
+.idea/
+
+# Word 열어둘 때 생기는 임시 파일
+~$*.docx
+
+# YOLOv5 가상환경, 가중치, 실행 결과 (YOLOv5/.gitignore에도 있음)
+YOLOv5/venv/
+YOLOv5/runs/
+*.pt
