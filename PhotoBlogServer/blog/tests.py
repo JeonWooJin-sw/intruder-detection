@@ -317,7 +317,7 @@ class PostApiTests(APITestCase):
     # ---------- Browsable API ----------
     def test_browsable_api_title_and_login_link(self):
         response = self.client.get(API_URL, HTTP_ACCEPT='text/html')
-        self.assertContains(response, 'Blog Images List')
+        self.assertContains(response, 'Intruder Image List')
         self.assertContains(response, '/api-auth/login/')
 
     def test_browsable_api_shows_post_form_after_login(self):

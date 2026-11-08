@@ -78,6 +78,7 @@ curl -X POST -S \
 | 글을 지워도 사진 파일이 media 폴더에 남음 | 글 삭제 시 업로드 파일도 삭제 (기본 이미지는 유지) |
 | Browsable API에서 로그인할 방법이 없음 | `/api-auth/` 추가 → `/api_root/Post/` 오른쪽 위 Log in 후 HTML form으로 글쓰기 |
 | 뷰셋 이름 `IntruderImage` | 강의자료 ch05와 같이 `BlogImages` 로 변경 |
+| (공통평가 02) 강의자료 ch08 p12 화면과 이름이 다름 | 뷰셋 이름을 다시 `IntruderImage`(Browsable API 제목 "Intruder Image List"), 블로그 제목을 `Intruder Detection` 으로 변경 |
 
 ## 테스트 / 코드 커버리지
 

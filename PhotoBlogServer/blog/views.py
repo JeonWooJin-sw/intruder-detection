@@ -61,8 +61,8 @@ def js_test(request):
     return render(request, 'blog/js_test.html', {})
 
 
-class BlogImages(viewsets.ModelViewSet):
-    # 강의자료 ch05 p5와 같은 이름 (예전 이름 IntruderImage)
+class IntruderImage(viewsets.ModelViewSet):
+    # 강의자료 ch08 p12와 같은 이름 (공통평가 01에서는 ch05에 맞춰 BlogImages였음)
     queryset = Post.objects.order_by(F('published_date').desc(nulls_last=True), '-id')
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
