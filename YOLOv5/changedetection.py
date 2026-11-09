@@ -6,6 +6,7 @@ from datetime import datetime
 
 # 강의자료 ch08 p8~10 changedetection.py
 # 강의 코드에서 바꾼 곳은 "# changed" 주석으로 이유를 적어둠
+# 편의 기능 1(검출 상태 안정화)로 추가한 곳은 "# added (편의 기능 1)" 주석
 
 
 class ChangeDetection:
@@ -19,8 +20,19 @@ class ChangeDetection:
     title = ''
     text = ''
 
+    # added (편의 기능 1): 검출 상태 안정화
+    # 강의자료 p9 "모든 연산 프레임을 전송할 경우 서버 과부하, 과 검출" 문제를 줄이려고
+    # 한두 프레임만 잡혔다 끊기는 검출은 무시하고, 몇 프레임 이어질 때만 0/1 상태를 바꿈
+    APPEAR_FRAMES = 3       # 연속 3프레임(약 0.4초) 보여야 '나타남(1)'
+    DISAPPEAR_FRAMES = 15   # 연속 15프레임(약 2초) 안 보여야 '사라짐(0)'
+    STABLE = os.environ.get('PHOTOBLOG_STABLE', '1') != '0'   # PHOTOBLOG_STABLE=0 이면 강의자료 방식 그대로
+
     def __init__(self, names):
         self.result_prev = [0 for i in range(len(names))]
+        # added (편의 기능 1): 클래스별 연속 검출/미검출 프레임 수와 안정화된 상태
+        self.count_on = [0 for i in range(len(names))]
+        self.count_off = [0 for i in range(len(names))]
+        self.state = [0 for i in range(len(names))]
 
         res = requests.post(self.HOST + '/api-token-auth/', {
             'username': self.username,
@@ -30,8 +42,28 @@ class ChangeDetection:
         self.token = res.json()['token']  # 토큰 저장
         # changed: 토큰 전체가 터미널 캡처에 찍히지 않게 앞부분만 출력
         print(self.token[:6] + '...')
+        print('검출 상태 안정화 :', 'ON' if self.STABLE else 'OFF (강의자료 방식)')
+
+    # added (편의 기능 1)
+    def stabilize(self, detected_current):
+        for i in range(len(detected_current)):
+            if detected_current[i] == 1:
+                self.count_on[i] += 1
+                self.count_off[i] = 0
+                if self.count_on[i] >= self.APPEAR_FRAMES:
+                    self.state[i] = 1
+            else:
+                self.count_off[i] += 1
+                self.count_on[i] = 0
+                if self.count_off[i] >= self.DISAPPEAR_FRAMES:
+                    self.state[i] = 0
+        return self.state[:]
 
     def add(self, names, detected_current, save_dir, image):
+        # added (편의 기능 1): 프레임 검출 결과 대신 안정화된 상태로 0 -> 1 변화를 판단
+        if self.STABLE:
+            detected_current = self.stabilize(detected_current)
+
         self.title = ''
         self.text = ''
         change_flag = 0  # 변화 감지 플래그
@@ -44,6 +76,7 @@ class ChangeDetection:
             i += 1
 
         self.result_prev = detected_current[:]  # 객체 검출 상태 저장
+
         if change_flag == 1:
             self.send(save_dir, image)
 
