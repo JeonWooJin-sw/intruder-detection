@@ -1,0 +1,22 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+    <p><a href="{% url 'post_archive' %}">&larr; 감지 기록</a></p>
+    <h2 class="archive-title">{{ day|date:"Y년 n월 j일" }} <span class="archive-total">{{ total }}건</span></h2>
+    <p>
+        <a class="archive-chip{% if not selected %} active{% endif %}" href="{% url 'post_archive_day' day.year day.month day.day %}">전체 {{ total }}</a>
+        {% for o in objects %}
+        <a class="archive-chip{% if o.title == selected %} active{% endif %}" href="?title={{ o.title|urlencode }}">{{ o.title }} {{ o.count }}</a>
+        {% endfor %}
+    </p>
+    <div class="archive-grid">
+        {% for post in posts %}
+        <a class="archive-item" href="{% url 'post_detail' pk=post.pk %}">
+            <img src="{{ post.image.url }}" alt="{{ post.title }}">
+            {{ post.published_date|date:"H:i:s" }} · {{ post.title }}
+        </a>
+        {% empty %}
+        <p class="empty">해당하는 사진이 없습니다.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

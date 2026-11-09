@@ -90,3 +90,49 @@ h1, h2, h3, h4 {
     color: #828282;
     margin-top: 30px;
 }
+/* 편의 기능 2: 감지 기록 아카이브 */
+.archive-title {
+    margin-top: 10px;
+}
+
+.archive-total {
+    color: #828282;
+    font-size: 60%;
+    margin-left: 8px;
+}
+
+.archive-day {
+    margin-bottom: 30px;
+}
+
+.archive-chip, .archive-chip:visited {
+    display: inline-block;
+    padding: 3px 12px;
+    margin: 0 6px 8px 0;
+    border: 1px solid #ff9400;
+    border-radius: 14px;
+    color: #c06f00;
+}
+
+.archive-chip.active {
+    background-color: #ff9400;
+    color: #ffffff;
+}
+
+.archive-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.archive-item, .archive-item:visited {
+    width: 240px;
+    color: #555555;
+}
+
+.archive-item img {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    margin-bottom: 4px;
+}

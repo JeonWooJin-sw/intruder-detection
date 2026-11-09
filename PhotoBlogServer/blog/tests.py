@@ -333,3 +333,86 @@ class PostApiTests(APITestCase):
         response = self.client.get(post.image.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'image/png')
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT, PASSWORD_HASHERS=FAST_HASHER)
+class ArchiveTests(APITestCase):
+    # 편의 기능 2: 감지 기록 아카이브 (날짜별·물체별 모아보기)
+
+    def setUp(self):
+        self.cam = User.objects.create_user('cam01', password='pw-1234')
+        self.today = [make_post(self.cam, title='cup'),
+                      make_post(self.cam, title='cell phone'),
+                      make_post(self.cam, title='cell phone')]
+        self.yesterday = make_post(self.cam, title='book', days_ago=1)
+        make_post(self.cam, title='hidden', published=False)   # 게시 안 된 글은 빠져야 함
+        self.day0 = timezone.localdate(self.today[0].published_date)
+        self.day1 = timezone.localdate(self.yesterday.published_date)
+
+    def day_url(self, day):
+        return reverse('post_archive_day', args=[day.year, day.month, day.day])
+
+    # ---------- 웹 페이지 ----------
+    def test_archive_page_groups_by_day_and_object(self):
+        response = self.client.get(reverse('post_archive'))
+        self.assertEqual(response.status_code, 200)
+        days = response.context['days']
+        self.assertEqual([d['date'] for d in days], [self.day0, self.day1])
+        self.assertEqual(days[0]['total'], 3)
+        self.assertEqual(days[0]['objects'][0], {'title': 'cell phone', 'count': 2})
+        self.assertContains(response, 'cell phone 2')
+        self.assertNotContains(response, 'hidden')
+
+    def test_archive_page_empty(self):
+        Post.objects.all().delete()
+        response = self.client.get(reverse('post_archive'))
+        self.assertContains(response, '아직 감지 기록이 없습니다.')
+
+    def test_archive_day_page_lists_that_day(self):
+        response = self.client.get(self.day_url(self.day0))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total'], 3)
+        self.assertEqual(len(response.context['posts']), 3)
+        self.assertNotContains(response, 'book')
+
+    def test_archive_day_filter_by_object(self):
+        response = self.client.get(self.day_url(self.day0), {'title': 'cell phone'})
+        self.assertEqual(len(response.context['posts']), 2)
+        self.assertEqual(response.context['total'], 3)
+        self.assertEqual(response.context['selected'], 'cell phone')
+
+    def test_archive_day_no_match_shows_empty(self):
+        response = self.client.get(self.day_url(self.day0), {'title': 'tv'})
+        self.assertContains(response, '해당하는 사진이 없습니다.')
+
+    def test_archive_day_invalid_date_404(self):
+        response = self.client.get('/archive/2026/2/30/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_header_has_archive_link(self):
+        response = self.client.get('/')
+        self.assertContains(response, reverse('post_archive'))
+
+    # ---------- API ----------
+    def test_api_filter_by_date(self):
+        response = self.client.get(API_URL, {'date': self.day1.isoformat()})
+        self.assertEqual([p['title'] for p in response.data], ['book'])
+
+    def test_api_filter_by_date_and_title(self):
+        response = self.client.get(API_URL, {'date': self.day0.isoformat(), 'title': 'cell phone'})
+        self.assertEqual(len(response.data), 2)
+
+    def test_api_filter_invalid_date(self):
+        response = self.client.get(API_URL, {'date': '2026-13-40'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_api_archive_summary(self):
+        response = self.client.get('/api_root/archive/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['date'], self.day0.isoformat())
+        self.assertEqual(response.data[0]['total'], 3)
+        self.assertEqual(response.data[1]['objects'], [{'title': 'book', 'count': 1}])
+
+    def test_api_root_lists_archive(self):
+        response = self.client.get('/api_root/')
+        self.assertIn('archive', response.data)

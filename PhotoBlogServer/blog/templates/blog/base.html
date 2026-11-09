@@ -19,6 +19,7 @@
         {% else %}
         <a href="{% url 'admin:login' %}?next={{ request.path }}" class="top-menu login-menu">로그인</a>
         {% endif %}
+        <a href="{% url 'post_archive' %}" class="top-menu login-menu">감지 기록</a>
         <h1><a href="/">Intruder Detection</a></h1>
     </div>
     <div class="content container">

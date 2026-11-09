@@ -1,0 +1,19 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+    <h2 class="archive-title">감지 기록 아카이브</h2>
+    <p class="summary">YOLO가 보낸 글을 날짜별·물체별로 모았습니다. 날짜나 물체 이름을 누르면 그 사진만 볼 수 있습니다.</p>
+    {% for d in days %}
+    <div class="archive-day">
+        <h3>
+            <a href="{% url 'post_archive_day' d.date.year d.date.month d.date.day %}">{{ d.date|date:"Y년 n월 j일" }}</a>
+            <span class="archive-total">{{ d.total }}건</span>
+        </h3>
+        {% for o in d.objects %}
+        <a class="archive-chip" href="{% url 'post_archive_day' d.date.year d.date.month d.date.day %}?title={{ o.title|urlencode }}">{{ o.title }} {{ o.count }}</a>
+        {% endfor %}
+    </div>
+    {% empty %}
+    <p class="empty">아직 감지 기록이 없습니다.</p>
+    {% endfor %}
+{% endblock %}
