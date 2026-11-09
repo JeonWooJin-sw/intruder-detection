@@ -161,12 +161,21 @@ public class MainActivity extends AppCompatActivity {
         private final String baseUrl;
         private final String token;
         private final int imageWidth;
+        // 편의 기능 2: 감지 기록에서 고른 날짜·물체 (null 이면 전체 동기화)
+        private final String filterDate;
+        private final String filterTitle;
         private boolean tokenExpired = false;
 
         CloadImage(String baseUrl, String token, int imageWidth) {
+            this(baseUrl, token, imageWidth, null, null);
+        }
+
+        CloadImage(String baseUrl, String token, int imageWidth, String filterDate, String filterTitle) {
             this.baseUrl = baseUrl;
             this.token = token;
             this.imageWidth = imageWidth;
+            this.filterDate = filterDate;
+            this.filterTitle = filterTitle;
         }
 
         @Override
@@ -174,13 +183,13 @@ public class MainActivity extends AppCompatActivity {
             PhotoBlogApi api = new PhotoBlogApi(baseUrl, token);
             List<Post> posts;
             try {
-                posts = api.fetchPosts();
+                posts = api.fetchPosts(filterDate, filterTitle);
             } catch (PhotoBlogApi.ApiException e) {
                 // 저장된 토큰이 서버에서 사라진 경우(DB 초기화 등) 401 -> 토큰 없이 다시 조회
                 if (e.code != 401 || token == null) throw e;
                 tokenExpired = true;
                 api = new PhotoBlogApi(baseUrl, null);
-                posts = api.fetchPosts();
+                posts = api.fetchPosts(filterDate, filterTitle);
             }
             // 배열 내 모든 이미지 다운로드 (하나가 실패해도 나머지는 보여줌)
             for (Post post : posts) {
@@ -202,7 +211,10 @@ public class MainActivity extends AppCompatActivity {
                 toast(getString(R.string.msg_token_expired));
             }
             adapter.setPosts(posts);
-            if (posts.isEmpty()) {
+            if (filterDate != null) {
+                String what = filterTitle != null ? filterTitle : getString(R.string.archive_all_objects);
+                textView.setText(getString(R.string.status_archive, filterDate, what, posts.size()));
+            } else if (posts.isEmpty()) {
                 textView.setText(R.string.status_empty);
             } else {
                 showLoadedStatus();
@@ -215,6 +227,74 @@ public class MainActivity extends AppCompatActivity {
             swipeRefresh.setRefreshing(false);
             textView.setText(errorMessage(e) + errorDetail(e));
         }
+    }
+
+    // ------------------------------------------------------------------
+    // 편의 기능 2: 감지 기록 (서버의 날짜별·물체별 감지 수를 받아서 골라 보기)
+    // ------------------------------------------------------------------
+    private void loadArchive() {
+        start(new BackgroundTask<List<ArchiveDay>>() {
+            @Override
+            protected List<ArchiveDay> doInBackground() throws Exception {
+                // 조회는 로그인 없이 되므로 토큰 없이 요청 (저장된 토큰이 만료돼도 문제 없게)
+                return new PhotoBlogApi(site_url, null).fetchArchive();
+            }
+
+            @Override
+            protected void onPostExecute(List<ArchiveDay> days) {
+                showArchiveDialog(days);
+            }
+
+            @Override
+            protected void onError(Exception e) {
+                Log.w(TAG, "감지 기록 불러오기 실패", e);
+                textView.setText(errorMessage(e) + errorDetail(e));
+            }
+        });
+    }
+
+    private void showArchiveDialog(List<ArchiveDay> days) {
+        if (days.isEmpty()) {
+            toast(getString(R.string.archive_empty));
+            return;
+        }
+        String[] items = new String[days.size()];
+        for (int i = 0; i < days.size(); i++) {
+            ArchiveDay day = days.get(i);
+            items[i] = getString(R.string.archive_day_item, day.date, day.total, day.summary());
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.archive_title)
+                .setItems(items, (d, which) -> showArchiveDayDialog(days.get(which)))
+                .setNegativeButton(R.string.close, null)
+                .show();
+    }
+
+    private void showArchiveDayDialog(ArchiveDay day) {
+        String[] items = new String[day.titles.size() + 1];
+        items[0] = getString(R.string.archive_all, day.total);
+        for (int i = 0; i < day.titles.size(); i++) {
+            items[i + 1] = getString(R.string.archive_object_item, day.titles.get(i), day.counts.get(i));
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(day.date)
+                .setItems(items, (d, which) -> loadArchivePosts(day.date, which == 0 ? null : day.titles.get(which - 1)))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /** 고른 날짜(·물체)의 글만 서버에서 받아 목록에 표시 */
+    private void loadArchivePosts(String date, String title) {
+        runWithNetworkAccess(() -> {
+            if (taskDownload != null && taskDownload.isRunning()) {
+                taskDownload.cancel();
+            }
+            swipeRefresh.setRefreshing(true);
+            textView.setText(R.string.status_loading);
+            int imageWidth = getResources().getDisplayMetrics().widthPixels;
+            taskDownload = new CloadImage(site_url, getToken(), imageWidth, date, title);
+            taskDownload.execute();
+        });
     }
 
     // ------------------------------------------------------------------
@@ -603,7 +683,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_server) {
+        if (id == R.id.action_archive) {
+            runWithNetworkAccess(this::loadArchive);
+            return true;
+        } else if (id == R.id.action_server) {
             showServerDialog();
             return true;
         } else if (id == R.id.action_login) {

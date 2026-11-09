@@ -25,6 +25,7 @@ public class PhotoBlogApi {
 
     public static final String POST_PATH = "/api_root/Post/";
     public static final String TOKEN_PATH = "/api-token-auth/";
+    public static final String ARCHIVE_PATH = "/api_root/archive/";   // 편의 기능 2
 
     private static final int CONNECT_TIMEOUT = 5000;
     private static final int READ_TIMEOUT = 15000;
@@ -50,7 +51,21 @@ public class PhotoBlogApi {
 
     /** GET /api_root/Post/ : 게시물 목록 (JSON Array) */
     public List<Post> fetchPosts() throws IOException, JSONException {
-        HttpURLConnection conn = open(baseUrl + POST_PATH, "GET");
+        return fetchPosts(null, null);
+    }
+
+    /** 편의 기능 2: GET /api_root/Post/?date=YYYY-MM-DD&title=물체 (null 이면 그 조건 없이) */
+    public List<Post> fetchPosts(String date, String title) throws IOException, JSONException {
+        StringBuilder url = new StringBuilder(baseUrl + POST_PATH);
+        char sep = '?';
+        if (date != null) {
+            url.append(sep).append("date=").append(URLEncoder.encode(date, "UTF-8"));
+            sep = '&';
+        }
+        if (title != null) {
+            url.append(sep).append("title=").append(URLEncoder.encode(title, "UTF-8"));
+        }
+        HttpURLConnection conn = open(url.toString(), "GET");
         try {
             JSONArray array = new JSONArray(readResponse(conn));
             List<Post> posts = new ArrayList<>();
@@ -58,6 +73,21 @@ public class PhotoBlogApi {
                 posts.add(Post.fromJson(array.getJSONObject(i)));
             }
             return posts;
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /** 편의 기능 2: GET /api_root/archive/ : 날짜별·물체별 감지 수 */
+    public List<ArchiveDay> fetchArchive() throws IOException, JSONException {
+        HttpURLConnection conn = open(baseUrl + ARCHIVE_PATH, "GET");
+        try {
+            JSONArray array = new JSONArray(readResponse(conn));
+            List<ArchiveDay> days = new ArrayList<>();
+            for (int i = 0; i < array.length(); i++) {
+                days.add(ArchiveDay.fromJson(array.getJSONObject(i)));
+            }
+            return days;
         } finally {
             conn.disconnect();
         }
