@@ -20,6 +20,7 @@ python manage.py runserver
 
 - 웹 : http://127.0.0.1:8000 (오른쪽 위 로그인 → + 버튼으로 사진 글쓰기)
 - API : http://127.0.0.1:8000/api_root/Post/ (오른쪽 위 Log in 하면 아래 HTML form으로 POST 가능)
+- 감지 기록 : http://127.0.0.1:8000/archive/ (공통평가 02 편의 기능, 날짜별·물체별 모아보기)
 - 안드로이드 에뮬레이터에서는 `http://10.0.2.2:8000` 으로 접속
 
 ## API
@@ -31,6 +32,8 @@ python manage.py runserver
 | GET | `/api_root/Post/<id>/` | 게시물 하나 | X |
 | POST | `/api_root/Post/` | 글쓰기 (multipart: title, text, image, published_date) | O |
 | PUT/PATCH/DELETE | `/api_root/Post/<id>/` | 수정/삭제 (작성자만) | O |
+| GET | `/api_root/Post/?date=YYYY-MM-DD&title=물체` | 날짜·물체로 거른 목록 (공통평가 02) | X |
+| GET | `/api_root/archive/` | 날짜별 감지 수와 물체별 개수 (공통평가 02) | X |
 
 응답 예시
 
@@ -83,13 +86,13 @@ curl -X POST -S \
 ## 테스트 / 코드 커버리지
 
 ```bash
-coverage run manage.py test   # 테스트 68개
+coverage run manage.py test   # 테스트 80개
 coverage report               # 터미널에서 확인
 coverage html                 # htmlcov/index.html 생성
 open htmlcov/index.html
 ```
 
-- `blog/tests.py` : 모델, 웹 화면, REST API(인증/업로드/검증/삭제) 테스트
+- `blog/tests.py` : 모델, 웹 화면, REST API(인증/업로드/검증/삭제), 감지 기록(공통평가 02) 테스트
 - `api_checker/tests.py` : API 검증 엔진 테스트 (실제 테스트 서버 + 가짜 응답)
 - 설정은 `.coveragerc` (branch 커버리지 포함, migrations 제외)
 
@@ -135,3 +138,16 @@ python -m api_checker https://woojin123123.pythonanywhere.com -u admin -i media/
    - `/static/` → `/home/woojin123123/photoblog/PhotoBlogServer/staticfiles`
    - `/media/` → `/home/woojin123123/photoblog/PhotoBlogServer/media`
 6. Reload
+
+### 공통평가 02 배포
+
+무료 계정은 웹 앱이 하나라서 01 사이트 폴더 자리에 이번 레포를 받았다. (Web 탭 경로는 그대로)
+
+```bash
+mv ~/photoblog ~/photoblog_01
+git clone https://github.com/JeonWooJin-sw/intruder-detection.git ~/photoblog
+cp ~/photoblog_01/PhotoBlogServer/db.sqlite3 ~/photoblog/PhotoBlogServer/
+cp -r ~/photoblog_01/PhotoBlogServer/media/images ~/photoblog/PhotoBlogServer/media/
+```
+
+이후 수정 반영 : `git pull` → `python manage.py collectstatic --noinput` → `touch /var/www/woojin123123_pythonanywhere_com_wsgi.py`

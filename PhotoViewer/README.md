@@ -23,6 +23,7 @@ PhotoBlogServer(Django)의 REST API로 게시물을 받아오고(동기화), 새
 | 상세 보기 / 삭제 | 게시물을 누르면 크게 보기, 로그인 상태면 삭제 가능 (서버에서 작성자만 허용) |
 | 검색 | 상단 돋보기 → 제목/내용으로 목록 필터 |
 | 당겨서 새로고침 | 목록을 아래로 당기면 다시 동기화 |
+| 감지 기록 (공통평가 02) | 메뉴 → 감지 기록 → 날짜 → 물체를 고르면 `/api_root/archive/`, `/api_root/Post/?date=&title=` 로 그 기록만 표시 |
 
 ## 구조
 
@@ -32,6 +33,7 @@ app/src/main/java/com/example/photoviewer/
 ├── ImageAdapter.java    RecyclerView 어댑터 (사진 + 제목/날짜/내용, 검색 필터)
 ├── PhotoBlogApi.java    HttpURLConnection으로 REST API 호출 (GET / POST multipart / DELETE / 토큰)
 ├── Post.java            게시물 JSON -> 객체
+├── ArchiveDay.java      감지 기록(날짜별 물체 수) JSON -> 객체 (공통평가 02)
 ├── ImageUtils.java      목록용 이미지 축소 디코딩, 업로드용 JPEG 변환(긴 변 1920px)
 └── BackgroundTask.java  AsyncTask 대신 사용 (ExecutorService + Handler)
 ```
